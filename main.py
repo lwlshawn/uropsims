@@ -39,32 +39,17 @@ def compute_probability(dist, x):
     return acc
 
 
-# compute the marginal distributions of vertex i, i.e. find probability vi = 1, and probability vi = 0
-# compute_marginal(dist,i) returns [Pr(vi = 0), Pr(vi = 1)]
-def compute_marginal(dist, i):
-    n = dist[0]
-    marginals = [0, 0]
+def compute_marginals(dist):
+    n = len(dist[0])
+    marginals = [0] * n
+    # marginals[i] = Pr(vi = 1) is enough
+    for i in range(n):
+        if i == 0:
+            marginals[0] = dist[1][0]
+        else:
+            marginals[i] = dist[0][i] * (1 - marginals[i - 1]) + dist[1][i] * (marginals[i - 1])
+    return marginals
 
-    if i == 0:
-        marginals[0] = dist[0][0]
-        marginals[1] = dist[1][0]
-
-        return marginals
-    else:
-        # compute the probability of all bitstrings
-        # because of 0-based indexing. if i = 1, second node, want to generate length 1 bitstrings
-        bitstrings = generate.bit_strings(i)
-        # now append 1
-        for s in bitstrings:
-            s += '1'
-        # now compute the probability of all these strings
-        marginal_vi_equals_one = 0
-        for s in bitstrings:
-            marginal_vi_equals_one += compute_probability(dist, s) * dist[int(s[-1])][i]
-
-        marginals[1] = marginal_vi_equals_one
-        marginals[0] = 1 - marginal_vi_equals_one
-        return marginals
 
 
 def dtv(p, q):
