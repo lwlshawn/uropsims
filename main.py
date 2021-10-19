@@ -51,7 +51,6 @@ def compute_marginals(dist):
     return marginals
 
 
-
 def dtv(p, q):
     """
     Computes and returns the dTV between distributions p and q
@@ -75,25 +74,26 @@ def graph_numerical_dtv(n):
     plt.plot(xi, yi)
     plt.show()
 
-# ================================== TESTED FUNCTIONS ABOVE THIS LINE ====================================
-
 
 def dkl(pi, qi):  # computes dkl between two bernoulli random variables
     first = (pi - qi)**2 / qi
     second = ((1 - pi) - (1 - qi))**2 / (1 - qi)
     return first + second
 
+# ================================== TESTED FUNCTIONS ABOVE THIS LINE ====================================
+
 
 def modified_distance_statistic(p, q):
     # this computes the KL factorisation, substituted with chi-square distance as per the journal
     n = len(p[0])
     _sum = 0
+    marginals = compute_marginals(p)
     for i in range(n):
-        for a in range(2):
-            if i == 0:
-                _sum += dkl(p[a][i], q[a][i])  # compute the dKL of P(i|a), Q(i|a)
-            else:
-                _sum += dkl(p[a][i], q[a][i]) * compute_marginal(p, i - 1)[a]
+        if i == 0:
+            _sum += dkl(p[0][1], q[0][1])
+        else:
+            for a in range(2):
+                _sum += dkl(p[a][i], q[a][i]) * (marginals[i] * a + (1 - marginals[i]) * (1 - a))
 
     return _sum
 
@@ -210,9 +210,9 @@ def compute_statistic(eps, dist, ref):
 
 if __name__ == '__main__':
     p = generate.constructed_reference_bn(6)
-    q = generate.constructed_random_bn(6)
+    # q = generate.constructed_random_bn(6)
 
-    # q = generate.close_to_uniform_bn(6)
+    q = generate.close_to_uniform_bn(6)
     compute_statistic(0.1, q, p)
 
     #graph_numerical_dtv(10)
