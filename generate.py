@@ -74,13 +74,19 @@ def constructed_random_bn(n):
     return dist
 
 
-def close_to_uniform_bn(n):
+def normal_around_uniform(n, sigma):
     dist = [[0] * n for _ in range(2)]
     rng = default_rng()
 
-    mu, sigma = 0.5, 0.01  # so ~97% of results between 0.47 to 0.53
+    mu, sigma = 0.5, sigma
     for i in range(n):
         p = rng.normal(mu, sigma)
+        if p > 1:
+            p = 1
+
+        if p < 0:
+            p = 0
+
         dist[0][i] = p
         dist[1][i] = 1 - p
 

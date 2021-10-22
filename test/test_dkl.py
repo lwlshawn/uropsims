@@ -24,3 +24,7 @@ class Test(TestCase):
 
     def test_dkl6(self):
         self.assertAlmostEqual(dkl(1/2, 1/6), 4/5, delta=DELTA)
+
+    def test_dkl7(self):
+        self.assertAlmostEqual(dkl(1/3, 1/4), 1/27, delta=DELTA)
+
