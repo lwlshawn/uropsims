@@ -74,9 +74,12 @@ def constructed_random_bn(n):
     return dist
 
 
-def normal_around_uniform(n, sigma):
+def normal_around_uniform(n, sigma, seed=None):
     dist = [[0] * n for _ in range(2)]
-    rng = default_rng()
+    if seed is None:
+        rng = default_rng()
+    else:
+        rng = default_rng(seed)
 
     mu, sigma = 0.5, sigma
     for i in range(n):
