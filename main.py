@@ -193,7 +193,7 @@ def compute_statistic(eps, dist, ref):
     true_dst = modified_distance_statistic(dist, ref)  # what we hope our statistic is close to approximating
     true_dtv = dtv(dist, ref)
     n = len(ref[0])
-    m = math.ceil(1 * (1 / eps**2) * math.sqrt(n))  # draw 1000 rt(n) / eps**2 samples
+    m = math.ceil(1000 * (1 / eps**2) * math.sqrt(n))  # draw 1000 rt(n) / eps**2 samples
 
     # next, it estimates it using sampling, in the style of the statistic we developed.
     # our frequency table needs to count # of times first node is 0 and first node is 1
@@ -282,7 +282,7 @@ def compute_statistic1(eps, dist, ref):
     true_dkl = compute_kl_factorisation(dist, ref)
 
     n = len(ref[0])
-    m = math.ceil((1 / eps**2) * math.sqrt(n))
+    m = math.ceil(10000 * (1 / eps**2) * math.sqrt(n))
 
     f_table = [[0] * 2 for _ in range(n)]
     cf_table = [[[2, 2], [2, 2]] for _ in range(n)]
