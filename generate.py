@@ -50,7 +50,7 @@ def constructed_reference_bn(n):
     return dist
 
 
-def constructed_random_bn(n):
+def constructed_random_bn(n, seed=None):
     dist = [[0] * n for _ in range(2)]
     c1 = 1 / (2 * n)
     c1_prime = 1 - c1
@@ -58,7 +58,11 @@ def constructed_random_bn(n):
     c2 = 3 / (2 * n)
     c2_prime = 1 - c2
 
-    rng = default_rng()
+    if seed is None:
+        rng = default_rng()
+    else:
+        rng = default_rng(seed)
+
     for i in range(n):
         if i == 0:
             dist[0][i] = 0.5
@@ -69,7 +73,7 @@ def constructed_random_bn(n):
                 dist[1][i] = c1_prime
             else:
                 dist[0][i] = c2
-                dist[0][i] = c2_prime
+                dist[1][i] = c2_prime
 
     return dist
 

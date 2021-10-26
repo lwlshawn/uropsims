@@ -54,7 +54,7 @@ class Test(TestCase):
         n = len(DIST1[0])
         f_table = [[0] * 2 for _ in range(n)]
         cf_table = [[[2, 2], [2, 2]] for _ in range(n)]
-        rng = default_rng()
+        rng = default_rng(seed=0)
         samples = {}
 
         for i in range(80000):
@@ -67,7 +67,7 @@ class Test(TestCase):
         check = 0
         for sample in samples:
             check += samples[sample]
-        self.assertEqual(check, m)
+        self.assertEqual(check, 80000)
 
         for sample in samples:
             self.assertAlmostEqual(samples[sample], 10000, delta=200)
@@ -77,7 +77,7 @@ class Test(TestCase):
         m = 100000
         f_table = [[0] * 2 for _ in range(n)]
         cf_table = [[[2, 2], [2, 2]] for _ in range(n)]
-        rng = default_rng()
+        rng = default_rng(seed=0)
         samples = {}
 
         for i in range(m):

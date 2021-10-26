@@ -277,202 +277,86 @@ def compute_statistic(eps, dist, ref):
 
 
 # ============================== EXPERIMENTS BEGIN HERE ==============================
-def compute_statistic1(eps, dist, ref, runs):
+def compute_statistic1(eps, dist, ref):
     true_dst = modified_distance_statistic(dist, ref)
-    true_dtv = dtv(dist, ref)
+    true_dkl = compute_kl_factorisation(dist, ref)
+
     n = len(ref[0])
-    m = math.ceil(1000 * (1 / eps**2) * math.sqrt(n))
+    m = math.ceil((1 / eps**2) * math.sqrt(n))
 
-    best_relative_error = 1
-    absolute_error = float('inf')
-    for run in range(runs):
-        f_table = [[0] * 2 for _ in range(n)]
-        cf_table = [[[2, 2], [2, 2]] for _ in range(n)]  # start all conditional counts with 2
-        rng = default_rng()
-        for i in range(m):
-            sample_and_update(dist, f_table, cf_table, rng)
+    f_table = [[0] * 2 for _ in range(n)]
+    cf_table = [[[2, 2], [2, 2]] for _ in range(n)]
+    rng = default_rng()
+    for i in range(m):
+        sample_and_update(dist, f_table, cf_table, rng)
 
-        # finally, it computes the statistic
-        _sum = 0
-        for i in range(n):
-            if i == 0:
+    _sum = 0
+    for i in range(n):
+        if i == 0:
+            for k in range(2):
+                nk = f_table[0][k]  # number of times v0 = k
+                qk = dist[k][0]  # probability v0 = k under q
+                num = (nk - m*qk)**2 - nk
+                den = (m - 1) * qk
+                _sum += num/den + m/(m - 1)
+
+        else:
+            for j in range(2):
                 for k in range(2):
-                    nk = f_table[0][k]  # number of times v0 = k
-                    qk = dist[k][0]  # probability v0 = k under q
-                    num = (nk - m*qk)**2 - nk
-                    den = (m - 1) * qk
-                    _sum += num/den + m/(m - 1)
+                    # qkj should be Pr_Q(vi = k | v_(i - 1) = j)
+                    # dist[j][i] = Pr(vi_1 = 1 | v_(i - 1) = j
+                    if k == 0:
+                        qkj = 1 - ref[j][i]
+                    else:
+                        qkj = ref[j][i]
 
-            else:
-                for j in range(2):
-                    for k in range(2):
-                        # qkj should be Pr_Q(vi = k | v_(i - 1) = j)
-                        # dist[j][i] = Pr(vi_1 = 1 | v_(i - 1) = j
-                        if k == 0:
-                            qkj = 1 - ref[j][i]
-                        else:
-                            qkj = ref[j][i]
+                    # nkj = # of times vi = k, given v_(i - 1) = j = cf_table[i][j][k]
+                    nkj = cf_table[i][j][k]
 
-                        # nkj = # of times vi = k, given v_(i - 1) = j = cf_table[i][j][k]
-                        nkj = cf_table[i][j][k]
-
-                        num = (nkj - f_table[i - 1][j] * qkj)**2 - nkj
-                        den = (f_table[i - 1][j] - 1) * qkj
-                        _sum += num/den + (f_table[i-1][j] / (f_table[i-1][j] - 1))
+                    num = (nkj - f_table[i - 1][j] * qkj)**2 - nkj
+                    den = (f_table[i - 1][j] - 1) * qkj
+                    _sum += num/den + (f_table[i-1][j] / (f_table[i-1][j] - 1))
 
         # re-scale the sum to check against our distance statistic
         _sum = _sum / m
-        if abs(true_dst - _sum) / _sum <= best_relative_error:
-            absolute_error = abs(true_dst - _sum)
-            best_relative_error = abs(true_dst - _sum) / _sum
-            final_sum = _sum
 
-    # at this point we have the statistic stored in _sum, and the estimate dst
-    # output relative error, and absolute error
-    def print_summary():
-        print(f"epsilon is: {eps}")
-        print(f"true value of distance statistic is: {true_dst}")
-        print(f"sqrt of distance statistic is: {math.sqrt(true_dst)}")
-        print(f"actual dTV between distributions is: {true_dtv}")
-
-        print(f"statistic value is: {final_sum}")
-        print(f"sqrt of statistic value is {math.sqrt(final_sum)}")
-        print(f"best relative error is: {best_relative_error}")
-        print(f"absolute error is: {absolute_error}")
-
-    print_summary()
-    return best_relative_error, absolute_error
+        absolute_error = abs(_sum - true_dst)
+        relative_error = abs(_sum - true_dst) / true_dst
+        return absolute_error, relative_error, true_dst, true_dkl
 
 
-def update_index(li, ri):
-    if li == 0 and ri == 0:
-        return li, ri + 1
+def run_experiment():
+    xi = [2, 4, 8, 16, 32, 64, 128, 256]
+    y1, y2, y3, y4 = [], [], [], []
+    for n in xi:
+        # q = generate.constructed_reference_bn(n)
+        # p = generate.constructed_random_bn(n)
 
-    elif li == 0 and ri == 1:
-        return li + 1, ri - 1
+        q = generate.uniform_bn(n)
+        p = generate.normal_around_uniform(n, 0.01)
 
-    elif li == 1 and ri == 0:
-        return li, ri + 1
+        (abs_err, rel_err, true_dstar, true_dkl) = compute_statistic1(0.25, p, q)
+        y1.append(abs_err)
+        y2.append(rel_err)
+        y3.append(true_dstar)
+        y4.append(true_dkl)
 
-    else:
-        return 1, 1
-
-
-def first_experiment():
-    num = 3
     fig, (ax1, ax2) = plt.subplots(1, 2)
+    ax1.plot(xi, y1, label="abs_err")
+    ax1.plot(xi, y2, label="rel_err")
+    ax1.set_title("error against number of nodes")
+    ax1.legend()
 
-    xi = [i for i in range(1, num)]
-    y1, y2 = [], []
-    q = generate.uniform_bn(10)
-    p1 = generate.normal_around_uniform(10, 0.01, seed=0)
-    p2 = generate.normal_around_uniform(10, 0.15, seed=0)
-    for k in range(1, num):
-        (relative_error, absolute_error) = compute_statistic1(0.1, p1, q, k)
-        y1.append(relative_error)
-        y2.append(absolute_error)
+    ax2.plot(xi, y3, label="d*")
+    ax2.plot(xi, y4, label="dkl")
+    ax2.set_title("dkl and d* against number of nodes")
+    ax2.legend()
 
-    ax1.plot(xi, y1, label="relative error")
-    ax1.plot(xi, y2, label="absolute error")
-    ax1.set_xlabel("k")
-    ax1.set_ylabel("error")
-    ax1.set_title("sigma = 0.01")
-
-    y1, y2 = [], []
-    for k in range(1, num):
-        (relative_error, absolute_error) = compute_statistic1(0.1, p2, q, k)
-        y1.append(relative_error)
-        y2.append(absolute_error)
-
-    ax2.plot(xi, y1, label="relative error")
-    ax2.plot(xi, y2, label="absolute error")
-    ax2.set_xlabel("k")
-    ax2.set_ylabel("error")
-    ax2.set_title("sigma = 0.15")
-
-    plt.legend()
     plt.show()
 
-
-# STEP 2: GRAPH THE ACTUAL DISTANCE STATISTIC, VS THE DTV STATISTIC
-def second_experiment():
-    deltas = [0.01, 0.05, 0.1, 0.15]
-    pairs = []
-
-    titles = [["", ""], ["", ""]]
-    titles[0][0] = "sigma = 0.01"
-    titles[0][1] = "sigma = 0.05"
-    titles[1][0] = "sigma = 0.10"
-    titles[1][1] = "sigma = 0.15"
-
-    g = lambda sigma: (lambda n: generate.normal_around_uniform(n, sigma))
-    for delta in deltas:
-        pairs.append((g(delta), generate.uniform_bn))
-
-    figure, axis = plt.subplots(2,2)
-    xi = [x for x in range(3, 11)]
-
-    li = 0
-    ri = 0
-    for (fp, fq) in pairs:
-        y1, y2, y3, y4, y5 = [], [], [], [], []
-        for n in range(3, 11): #number of nodes is the x axis
-            p = fp(n)
-            q = fq(n)
-            true_dtv = dtv(p, q)
-            true_dst_statistic = modified_distance_statistic(p, q)
-            true_dst_statistic_sqrt = math.sqrt(true_dst_statistic)
-            true_kl_factorisation = compute_kl_factorisation(p, q)
-            y1.append(true_dtv)
-            y2.append(true_dst_statistic)
-            y3.append(true_dst_statistic_sqrt)
-            y4.append(true_kl_factorisation)
-            y5.append(math.sqrt(true_kl_factorisation))
-
-        axis[li, ri].plot(xi, y1, label='dTV')
-        # axis[li, ri].plot(xi, y2, label='distance statistic')
-        axis[li, ri].plot(xi, y3, label='sqrt of distance statistic')
-        # axis[li, ri].plot(xi, y4, label='kl factorisation')
-        axis[li, ri].plot(xi, y5, label='sqrt of kl factorisation')
-        axis[li, ri].set_title(titles[li][ri])
-        li, ri = update_index(li, ri)
-
-        print(f'li is: {li}, ri is: {ri}')
-
-    plt.legend()
-    plt.show()
-"""
-Passes sanity checks: 
-- new distance metric is consistently larger than actual KL factorisation
-- sqrt of new distance metric > sqrt of actual kl factorisation > dtv
-"""
-
-def third_experiment():
-    pass
-    # now we need to find a good break point
-    # goal is to distinguish between the cases where
-    # KL(P, Q) <= eps^2 / 10 and dtv(P, Q) > eps with good probability
-
-
-
-
-# STEP 3: EXPERIMENT WITH DERIVED BREAK POINTS TO FIND A GOOD PLACE
-
-
-
-
-# need to find a break point that performs well.
-# I probably want to fix the distributions I use so that I can consistently test against them
-# So find distributions that are varying amounts of dTV away from uniform, and experimentally find
-# a good break point
-
-
-# what we do at least have is that our statistic properly finds an amount such that when we
-# take the square root, it is > then the total variation distance.
 
 if __name__ == '__main__':
-    p = generate.constructed_random_bn(10)
-    q = generate.constructed_reference_bn(10)
+    n = 10
+    q = generate.uniform_bn(n)
+    p = generate.normal_around_uniform(n, 0.01)
     compute_statistic(0.1, p, q)
-
-    first_experiment()

@@ -12,3 +12,4 @@ class Test(TestCase):
     def test_modified_distance_statistic2(self):
         # numerical accuracy here improves again greatly when fractions are simpler
         self.assertAlmostEqual(modified_distance_statistic(DIST2, DIST4), 2/27, delta=DELTA)
+
