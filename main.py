@@ -277,12 +277,13 @@ def compute_statistic(eps, dist, ref):
 
 
 # ============================== EXPERIMENTS BEGIN HERE ==============================
+# Modified to remove dTV computation to allow for larger values of n.
 def compute_statistic1(eps, dist, ref):
     true_dst = modified_distance_statistic(dist, ref)
     true_dkl = compute_kl_factorisation(dist, ref)
 
     n = len(ref[0])
-    m = math.ceil(10000 * (1 / eps**2) * math.sqrt(n))
+    m = math.ceil(10 * (1 / eps**2) * math.sqrt(n))
 
     f_table = [[0] * 2 for _ in range(n)]
     cf_table = [[[2, 2], [2, 2]] for _ in range(n)]
@@ -317,23 +318,25 @@ def compute_statistic1(eps, dist, ref):
                     den = (f_table[i - 1][j] - 1) * qkj
                     _sum += num/den + (f_table[i-1][j] / (f_table[i-1][j] - 1))
 
-        # re-scale the sum to check against our distance statistic
-        _sum = _sum / m
-
-        absolute_error = abs(_sum - true_dst)
-        relative_error = abs(_sum - true_dst) / true_dst
-        return absolute_error, relative_error, true_dst, true_dkl
+    # re-scale the sum to check against our distance statistic
+    _sum = _sum / m
+    print(f"the statistic value is: {_sum}")
+    print(f"the true value of distance statistic is: {true_dst}")
+    print(true_dst)
+    absolute_error = abs(_sum - true_dst)
+    relative_error = abs(_sum - true_dst) / true_dst
+    return absolute_error, relative_error, true_dst, true_dkl
 
 
 def run_experiment():
     xi = [2, 4, 8, 16, 32, 64, 128, 256]
     y1, y2, y3, y4 = [], [], [], []
-    for n in xi:
-        # q = generate.constructed_reference_bn(n)
-        # p = generate.constructed_random_bn(n)
+    for ni in xi:
+        q = generate.constructed_reference_bn(ni)
+        p = generate.constructed_random_bn(ni)
 
-        q = generate.uniform_bn(n)
-        p = generate.normal_around_uniform(n, 0.01)
+        # q = generate.uniform_bn(n)
+        # p = generate.normal_around_uniform(n, 0.01)
 
         (abs_err, rel_err, true_dstar, true_dkl) = compute_statistic1(0.25, p, q)
         y1.append(abs_err)
@@ -343,7 +346,7 @@ def run_experiment():
 
     fig, (ax1, ax2) = plt.subplots(1, 2)
     ax1.plot(xi, y1, label="abs_err")
-    ax1.plot(xi, y2, label="rel_err")
+    # ax1.plot(xi, y2, label="rel_err")
     ax1.set_title("error against number of nodes")
     ax1.legend()
 
@@ -355,8 +358,20 @@ def run_experiment():
     plt.show()
 
 
+"""
+To get the absolute error small is still ok, but relative error is a lot harder to get correct then
+I expected. At least the absolute error does decrease with the number of samples like we'd hope. So there
+may be errors but fundamentally what i've done is still an actual approximation of d*?
+
+Or NOT. I think the problem is that in the other case, its just that the numbers are small. There may 
+fundamentally be a problem with my compute_statistic that has gone unnoticed till now.
+"""
+
+
 if __name__ == '__main__':
-    n = 10
-    q = generate.uniform_bn(n)
-    p = generate.normal_around_uniform(n, 0.01)
-    compute_statistic(0.1, p, q)
+    q = generate.constructed_reference_bn(3)
+    p = generate.constructed_random_bn(3)
+    compute_statistic(0.25, p, q)
+    print()
+    compute_statistic1(0.25, p, q)
+
