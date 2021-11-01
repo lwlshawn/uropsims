@@ -98,3 +98,22 @@ def normal_around_uniform(n, sigma, seed=None):
         dist[1][i] = 1 - p
 
     return dist
+
+
+def normal_nonzero_around_uniform(n, sigma, seed=None):
+    dist = [[0] * n for _ in range(2)]
+    if seed is None:
+        rng = default_rng()
+    else:
+        rng = default_rng(seed)
+
+    mu, sigma = 0.5, sigma
+    for i in range(n):
+        p = rng.normal(mu, sigma)
+        while p <= 0 or 1 <= p:
+            p = rng.normal(mu, sigma)  # regenerate if 0
+
+        dist[0][i] = p
+        dist[1][i] = 1 - p
+
+    return dist
